@@ -1,17 +1,21 @@
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-export async function POST(req: NextRequest){
-    const { messages } = await req.json();
+export async function POST(req: NextRequest) {
+  const { messages } = await req.json();
 
-    const response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: messages,
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    })
-    return NextResponse.json(response.choices[0].message)
+  const history = messages.slice(0, -1).map((m: {role: string, content: string}) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const chat = model.startChat({ history });
+  const last = messages[messages.length - 1];
+  const result = await chat.sendMessage(last.content);
+
+  return NextResponse.json({ role: 'assistant', content: result.response.text() });
 }
