@@ -6,12 +6,15 @@ const groq = new Groq({
 });
 
 export async function POST(req: NextRequest) {
-  const { messages } = await req.json();
-
-  const response = await groq.chat.completions.create({
-    model: 'deepseek-r1-distill-llama-70b',
-    messages: messages,
-  });
-
-  return NextResponse.json(response.choices[0].message);
+  try {
+    const { messages } = await req.json();
+    const response = await groq.chat.completions.create({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: messages,
+    });
+    return NextResponse.json(response.choices[0].message);
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json({ role: 'assistant', content: 'Something went wrong!' }, { status: 500 });
+  }
 }
